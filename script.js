@@ -11,7 +11,7 @@ const renderContent = function (obj, className = "") {
   <div class="country__data">
     <h3 class="country__name">${obj.name.official}</h3>
     <h4 class="country__region">${obj.region}</h4>
-    <p class="country__row"><span>👫</span>${"Too much people"}</p>
+    <p class="country__row"><span>👫</span>${obj.population}</p>
     <p class="country__row"><span>🗣️</span>${Object.values(
       obj.languages
     ).shift()}</p>
