@@ -24,7 +24,6 @@ const renderContent = function (obj, className = "") {
 };
 
 const handleError = function (error) {
-  console.error(error);
   countriesContainer.insertAdjacentText("beforeend", error.message);
 };
 
@@ -38,14 +37,19 @@ function parseAndDisplay(data, type) {
   }
 }
 
-const getJson = function (url, errorMsg = "Something went wrong") {
-  return fetch(url).then((response) => {
-    if (response.ok) {
-      return response.json();
-    } else {
-      throw new Error(`${response.status}, ${errorMsg}`);
-    }
+const getPositionShort = function () {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject);
   });
+};
+
+const getJson = async function (url, errorMsg = "Something went wrong") {
+  const response = await fetch(url);
+  if (response.ok) {
+    return response.json();
+  } else {
+    throw new Error(`${response.status}, ${errorMsg}`);
+  }
 };
 
 //With helper function
@@ -62,37 +66,36 @@ const getCountryDate = function (country) {
         throw new Error("There is no neighbour");
       }
     })
-    .then((data) => parseAndDisplay(data, "neighbour"))
-    .catch((err) => handleError(err))
-    .finally(() => {
-      countriesContainer.style.opacity = 1;
-    });
+    .then((data) => parseAndDisplay(data, "neighbour"));
 };
 
-function getLocationData(lat, long) {
-  return fetch(`https://geocode.xyz/${lat},${long}?geoit=json`).then(
-    (response) => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        if (response.status === 403) {
-          return response.json().then((errMessage) => {
-            const text = errMessage.error.message;
-            throw new Error(text);
-          });
-        } else {
-          throw new Error("Location does not exist.. Try again");
-        }
-      }
+async function getLocationData(lat, long) {
+  const response = await fetch(`https://geocode.xyz/${lat},${long}?geoit=json`);
+  if (response.ok) {
+    return response.json();
+  } else {
+    if (response.status === 403) {
+      return response.json().then((errMessage) => {
+        const text = errMessage.error.message;
+        throw new Error(text);
+      });
+    } else {
+      throw new Error("Location does not exist.. Try again");
     }
-  );
+  }
 }
 
-function whereAmI(lat, long) {
-  getLocationData(lat, long)
+function whereAmI() {
+  countriesContainer.textContent = "";
+  getPositionShort()
+    .then((position) => {
+      return getLocationData(
+        position.coords.latitude.toFixed(2),
+        position.coords.longitude.toFixed(2)
+      );
+    })
     .then((data) => {
       const country = data.country;
-      console.log(`You are in ${data.region}, ${country}`);
       getCountryDate(country);
     })
     .catch((err) => handleError(err))
@@ -101,12 +104,4 @@ function whereAmI(lat, long) {
     });
 }
 
-btn.addEventListener("click", function () {
-  countriesContainer.textContent = "";
-  navigator.geolocation.getCurrentPosition(function (position) {
-    const lat = position.coords.latitude;
-    const long = position.coords.longitude;
-    console.log(lat, long);
-    whereAmI(lat.toFixed(2), long.toFixed(2));
-  });
-});
+btn.addEventListener("click", whereAmI);
